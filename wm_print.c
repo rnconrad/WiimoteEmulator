@@ -36,7 +36,7 @@ void print_report(const uint8_t * buf, int len)
       {
         struct report_mode * rpt = (struct report_mode *)data->buf;
 
-        printf("(set reporting mode %u, cont: %u)", rpt->mode & 1, rpt->continuous & 1);
+        printf("(set reporting mode %02x, cont: %u)", rpt->mode, rpt->continuous & 1);
 
         break;
       }
