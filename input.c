@@ -119,15 +119,12 @@ int input_update(struct wiimote_state *state, struct input_source const * source
         break;
       case INPUT_BUTTON_CLASSIC_A:
         state->usr.classic.a = pressed;
-      printf("classic A\n");
         break;
       case INPUT_BUTTON_CLASSIC_B:
         state->usr.classic.b = pressed;
-      printf("classic B\n");
         break;
       case INPUT_BUTTON_CLASSIC_X:
         state->usr.classic.x = pressed;
-      printf("classic X\n");
         break;
       case INPUT_BUTTON_CLASSIC_Y:
         state->usr.classic.y = pressed;
@@ -140,11 +137,9 @@ int input_update(struct wiimote_state *state, struct input_source const * source
         break;
       case INPUT_BUTTON_CLASSIC_ZL:
         state->usr.classic.lz = pressed;
-      printf("classic ZL\n");
         break;
       case INPUT_BUTTON_CLASSIC_ZR:
         state->usr.classic.rz = pressed;
-      printf("classic ZR\n");
         break;
       case INPUT_BUTTON_CLASSIC_PLUS:
         state->usr.classic.plus = pressed;
@@ -203,11 +198,9 @@ int input_update(struct wiimote_state *state, struct input_source const * source
           break;
         case INPUT_ANALOG_MOTION_CLASSIC_LEFT_STICK_LEFT:
           classic_left_stick_left = moving;
-        printf("classic left %d\n", moving);
           break;
         case INPUT_ANALOG_MOTION_CLASSIC_LEFT_STICK_RIGHT:
           classic_left_stick_right = moving;
-        printf("classic right\n");
           break;
 
         case INPUT_ANALOG_MOTION_MOTIONPLUS_UP:
