@@ -121,6 +121,7 @@ struct wiimote_state_sys
   uint8_t battery_level;
   bool low_battery;
 
+  int extension_hotplug_timer;
   bool extension_connected;
   enum wiimote_connected_extension_type connected_extension_type;
 

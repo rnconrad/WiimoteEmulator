@@ -112,16 +112,22 @@ int generate_report(struct wiimote_state * state, uint8_t * buf)
 
   if (state->usr.connected_extension_type != state->sys.connected_extension_type)
   {
-    bool extension_connected = (state->usr.connected_extension_type != NoExtension);
-    if (state->sys.extension_connected && extension_connected)
+    if (state->sys.extension_connected)
     {
       state->sys.extension_connected = 0;
+      state->sys.connected_extension_type = NoExtension;
+      state->sys.extension_hotplug_timer = 30;
       report_queue_push_status(state);
     }
-    state->sys.extension_connected = extension_connected;
-    state->sys.connected_extension_type = state->usr.connected_extension_type;
-    report_queue_push_status(state);
-    init_extension(state);
+
+    bool extension_connected = (state->usr.connected_extension_type != NoExtension);
+    if (extension_connected && --state->sys.extension_hotplug_timer <= 0)
+    {
+      state->sys.extension_connected = extension_connected;
+      state->sys.connected_extension_type = state->usr.connected_extension_type;
+      report_queue_push_status(state);
+      init_extension(state);
+    }
   }
 
   if (!state->sys.reporting_continuous && !state->sys.report_changed && state->sys.queue == NULL)
