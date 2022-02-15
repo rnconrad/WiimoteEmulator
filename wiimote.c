@@ -437,7 +437,6 @@ void write_register(struct wiimote_state *state, uint32_t offset, uint8_t size, 
         if (buf[0] == 0xaa)
         {
           state->sys.extension_encrypted = 1;
-          result = 0x07;
         }
         else if (buf[0] == 0x55)
         {
