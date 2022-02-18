@@ -263,14 +263,16 @@ void report_append_extension(struct wiimote_state * state, uint8_t * buf, uint8_
 
       rpt->x = state->usr.nunchuk.x;
       rpt->y = state->usr.nunchuk.y;
+
       rpt->accel_x_hi = state->usr.nunchuk.accel_x >> 2;
       rpt->accel_y_hi = state->usr.nunchuk.accel_y >> 2;
       rpt->accel_z_hi = state->usr.nunchuk.accel_z >> 2;
       rpt->accel_x_lo = state->usr.nunchuk.accel_x;
       rpt->accel_y_lo = state->usr.nunchuk.accel_y;
       rpt->accel_z_lo = state->usr.nunchuk.accel_z;
-      rpt->c = state->usr.nunchuk.c;
-      rpt->z = state->usr.nunchuk.z;
+
+      rpt->c = !state->usr.nunchuk.c;
+      rpt->z = !state->usr.nunchuk.z;
 
       break;
     }
@@ -356,14 +358,16 @@ void report_append_extension(struct wiimote_state * state, uint8_t * buf, uint8_
 
         rpt->x = state->usr.nunchuk.x;
         rpt->y = state->usr.nunchuk.y;
+
         rpt->accel_x_hi = state->usr.nunchuk.accel_x >> 2;
         rpt->accel_y_hi = state->usr.nunchuk.accel_y >> 2;
         rpt->accel_z_hi = state->usr.nunchuk.accel_z >> 3;
         rpt->accel_x_lo = state->usr.nunchuk.accel_x >> 1;
         rpt->accel_y_lo = state->usr.nunchuk.accel_y >> 1;
         rpt->accel_z_lo = state->usr.nunchuk.accel_z >> 1;
-        rpt->c = state->usr.nunchuk.c;
-        rpt->z = state->usr.nunchuk.z;
+
+        rpt->c = !state->usr.nunchuk.c;
+        rpt->z = !state->usr.nunchuk.z;
 
         rpt->ext = 1;
 
