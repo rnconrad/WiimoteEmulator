@@ -8,15 +8,22 @@
 int show_reports = 0;
 int reports_truncated = 0;
 
+uint64_t next_report_ts = 0;
+uint64_t report_timeout_us = 500000;
+
+int verbose_reports = 0;
+
 void print_report(const uint8_t * buf, int len)
 {
   struct timeval tv;
   int i;
   struct report_data * data = (struct report_data *)buf;
+  uint64_t ts;
 
   if (len == 0) return;
 
   gettimeofday(&tv, NULL);
+  ts = tv.tv_sec * (uint64_t)1000000 + tv.tv_usec;
 
   if (buf[0] == 0xa2) //report from wii
   {
@@ -44,7 +51,8 @@ void print_report(const uint8_t * buf, int len)
       {
         struct report_leds * rpt = (struct report_leds *)data->buf;
 
-        printf("(set player leds %u %u %u %u)", rpt->led_1 & 1, rpt->led_2, rpt->led_3, rpt->led_4);
+        printf("(set player leds %u %u %u %u)", rpt->led_1 & 1, rpt->led_2 & 1,
+          rpt->led_3 & 1, rpt->led_4 & 1);
         break;
       }
       case 0x13:
@@ -52,6 +60,7 @@ void print_report(const uint8_t * buf, int len)
       {
         struct report_ir_enable * rpt = (struct report_ir_enable *)data->buf;
 
+        printf("%02x %02x ", buf[2], buf[3]);
         printf("(set ir cam enable %u)", rpt->enabled & 1);
 
         break;
@@ -129,41 +138,83 @@ void print_report(const uint8_t * buf, int len)
   {
     if (buf[1] < 0x30 || show_reports)
     {
-      printf("\e[2;37m%ld.%06ld \e[1;34mWiimote:\e[0m ", tv.tv_sec, tv.tv_usec);
-      printf("\e[33m%02x\e[0m \e[0;34m%02x %02x\e[0m ", buf[1], buf[2], buf[3]);
-
-      switch(buf[1])
+      if (ts >= next_report_ts)
       {
-        case 0x22:
-          printf("\e[0;35m%02x \e[0;31m%02x\e[0m ", buf[4], buf[5]);
-          printf("(ack report: %02x, res: %02x)", buf[4], buf[5]);
-          break;
-        case 0x21:
-          printf("\e[0;31m%02x \x1B[32m%02x %02x\e[0m ", buf[4], buf[5], buf[6]);
-          for (i = 7; i < len; i++)
+        printf("\e[2;37m%ld.%06ld \e[1;34mWiimote:\e[0m ", tv.tv_sec, tv.tv_usec);
+        printf("\e[33m%02x\e[0m \e[0;34m%02x %02x\e[0m ", buf[1], buf[2], buf[3]);
+
+        switch(buf[1])
+        {
+          case 0x22:
+            printf("\e[0;35m%02x \e[0;31m%02x\e[0m ", buf[4], buf[5]);
+            printf("(ack report: %02x, res: %02x)", buf[4], buf[5]);
+            break;
+          case 0x21:
+            printf("\e[0;31m%02x \x1B[32m%02x %02x\e[0m ", buf[4], buf[5], buf[6]);
+            for (i = 7; i < len; i++)
+            {
+              printf("%02x ", buf[i]);
+            }
+            printf("(memory output)");
+            break;
+          case 0x20:
+            printf("\e[0;35m%02x\e[0m ", buf[4]);
+            for (i = 5; i < len; i++)
+            {
+              printf("%02x ", buf[i]);
+            }
+            printf("(status report)");
+            break;
+          default:
+            for (i = 4; i < len; i++)
+            {
+              printf("%02x ", buf[i]);
+            }
+        }
+
+        printf("\e[0m\n");
+
+        if (verbose_reports)
+        {
+          struct report_accelerometer * report_accel = (struct report_accelerometer *)(buf + 2);
+          printf("  accel %02x %02x, %02x %02x, %02x %02x\n",
+            report_accel->x, report_accel->buttons.accel_0 & 0x3,
+            report_accel->y, (report_accel->buttons.accel_1 & 0x1) << 1,
+            report_accel->z, (report_accel->buttons.accel_1 & 0x2));
+
+          if (buf[1] == 0x33)
           {
-            printf("%02x ", buf[i]);
+            struct report_ir_ext * report_ir = (struct report_ir_ext *)(buf + 2 + 5);
+            for (int i = 0; i < 4; i++)
+            {
+              printf("  object %d: %d, %d [%d]\n", i,
+                (((unsigned int)report_ir->obj[i].x_hi & 0x3) << 8 | report_ir->obj[i].x_lo),
+                (((unsigned int)report_ir->obj[i].y_hi & 0x3) << 8 | report_ir->obj[i].y_lo),
+                report_ir->obj[i].size);
+            }
           }
-          printf("(memory output)");
-          break;
-        case 0x20:
-          printf("\e[0;35m%02x\e[0m ", buf[4]);
-          for (i = 5; i < len; i++)
+
+          if (buf[1] == 0x37)
           {
-            printf("%02x ", buf[i]);
+            struct report_ir_basic * report_ir = (struct report_ir_basic *)(buf + 2 + 5);
+            printf("  object %d: %d, %d\n", 0,
+              (((unsigned int)report_ir->x1_hi & 0x3) << 8 | report_ir->x1_lo),
+              (((unsigned int)report_ir->y1_hi & 0x3) << 8 | report_ir->y1_lo));
+            printf("  object %d: %d, %d\n", 1,
+              (((unsigned int)report_ir->x2_hi & 0x3) << 8 | report_ir->x2_lo),
+              (((unsigned int)report_ir->y2_hi & 0x3) << 8 | report_ir->y2_lo));
+            printf("  object %d: %d, %d\n", 2,
+              (((unsigned int)report_ir->x3_hi & 0x3) << 8 | report_ir->x3_lo),
+              (((unsigned int)report_ir->y3_hi & 0x3) << 8 | report_ir->y3_lo));
+            printf("  object %d: %d, %d\n", 3,
+              (((unsigned int)report_ir->x4_hi & 0x3) << 8 | report_ir->x4_lo),
+              (((unsigned int)report_ir->y4_hi & 0x3) << 8 | report_ir->y4_lo));
           }
-          printf("(status report)");
-          break;
-        default:
-          for (i = 4; i < len; i++)
-          {
-            printf("%02x ", buf[i]);
-          }
+        }
+
+        reports_truncated = 0;
+        next_report_ts = ts + report_timeout_us;
       }
-
-      printf("\e[0m\n");
-
-      reports_truncated = 0;
     }
     else
     {
