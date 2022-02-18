@@ -70,13 +70,14 @@ struct report_ir_basic
 
   uint8_t x2_lo;
   uint8_t y2_lo;
+
   uint8_t x3_lo;
   uint8_t y3_lo;
 
-  int x3_hi:2;
-  int y3_hi:2;
   int x4_hi:2;
   int y4_hi:2;
+  int x3_hi:2;
+  int y3_hi:2;
 
   uint8_t x4_lo;
   uint8_t y4_lo;
@@ -304,8 +305,8 @@ struct report_leds
   int unused:3;
   int led_1:1;
   int led_2:1;
-  int led_4:1;
   int led_3:1;
+  int led_4:1;
 } __attribute__((packed));
 
 struct report_mode
@@ -321,7 +322,7 @@ struct report_mode
 struct report_ir_enable
 {
   int rumble:1;
-  int unused1:1;
+  int ack_requested:1;
   int enabled:1;
   int unused0:5;
 } __attribute__((packed));
