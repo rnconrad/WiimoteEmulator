@@ -79,6 +79,8 @@ enum input_analog_motion
     INPUT_ANALOG_MOTION_IR_LEFT,
     INPUT_ANALOG_MOTION_IR_RIGHT,
 
+    INPUT_ANALOG_MOTION_POINTER,
+
     INPUT_ANALOG_MOTION_STEER_LEFT,
     INPUT_ANALOG_MOTION_STEER_RIGHT,
 
@@ -102,6 +104,9 @@ enum input_analog_motion
 struct input_analog_motion_event
 {
     bool moving;
+    float delta_x;
+    float delta_y;
+    float delta_z;
     enum input_analog_motion motion;
 };
 

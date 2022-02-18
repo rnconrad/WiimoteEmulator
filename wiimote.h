@@ -91,7 +91,7 @@ struct wiimote_state_usr
   bool power;
 
   //accelerometer (10 bit range)
-  //0 acceleration is approximately 0x80
+  //0 acceleration is approximately 0x200
   uint16_t accel_x;
   uint16_t accel_y;
   uint16_t accel_z;
@@ -105,9 +105,14 @@ struct wiimote_state_usr
   struct wiimote_motionplus motionplus;
 };
 
+void reset_ir_object(struct wiimote_ir_object * object);
+void reset_input_ir(struct wiimote_ir_object ir_object[4]);
+void reset_input_nunchuk(struct wiimote_nunchuk * nunchuk);
+void reset_input_classic(struct wiimote_classic * classic);
+void reset_input_motionplus(struct wiimote_motionplus * motionplus);
+
 struct wiimote_state_sys
 {
-  //controller led status
   bool led_1;
   bool led_2;
   bool led_3;
@@ -158,8 +163,6 @@ void wiimote_reset(struct wiimote_state *state);
 
 int process_report(struct wiimote_state *state, const uint8_t *buf, int len);
 int generate_report(struct wiimote_state * state, uint8_t * buf);
-
-void ir_object_clear(struct wiimote_state * state, uint8_t num);
 
 void read_eeprom(struct wiimote_state * state, uint32_t offset, uint16_t size);
 void write_eeprom(struct wiimote_state * state, uint32_t offset, uint8_t size, const uint8_t * buf);

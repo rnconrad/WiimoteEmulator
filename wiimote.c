@@ -11,7 +11,13 @@ int tries = 0;
 
 static uint8_t classic_calibration[16] =
 {
-  0xF8, 0x04, 0x7A, 0xF8, 0x04, 0x7A, 0xF8, 0x04, 0x7A, 0xF8, 0x04, 0x7A, 0x00, 0x00, 0x00, 0x00
+  // 0xF8, 0x04, 0x7A, 0xF8, 0x04, 0x7A, 0xF8, 0x04, 0x7A, 0xF8, 0x04, 0x7A, 0x00, 0x00, 0x00, 0x00
+  0xE1, 0x19, 0x7C, 0xEF, 0x22, 0x7C, 0xE6, 0x1E, 0x85, 0xDE, 0x15, 0x8B, 0x0E, 0x22, 0x8F, 0xE4
+};
+
+static uint8_t nunchuk_calibration[16] =
+{
+  0x81, 0x80, 0x7F, 0x22, 0xB5, 0xB3, 0xB3, 0x03, 0x00, 0x00, 0x7C, 0x00, 0x00, 0x83, 0x14, 0x69
 };
 
 int process_report(struct wiimote_state *state, const uint8_t * buf, int len)
@@ -215,11 +221,6 @@ int generate_report(struct wiimote_state * state, uint8_t * buf)
   }
 
   return len;
-}
-
-void ir_object_clear(struct wiimote_state * state, uint8_t num)
-{
-  memset(&(state->usr.ir_object[num]), 0xff, sizeof(struct wiimote_ir_object));
 }
 
 void read_eeprom(struct wiimote_state * state, uint32_t offset, uint16_t size)
@@ -556,6 +557,48 @@ void write_register(struct wiimote_state *state, uint32_t offset, uint8_t size, 
   report_queue_push_ack(state, 0x16, result);
 }
 
+void reset_ir_object(struct wiimote_ir_object * ir_object)
+{
+  memset(ir_object, 0xff, sizeof(struct wiimote_ir_object));
+}
+
+void reset_input_ir(struct wiimote_ir_object ir_object[4])
+{
+  memset(ir_object, 0xff, sizeof(struct wiimote_ir_object) * 4);
+}
+
+void reset_input_nunchuk(struct wiimote_nunchuk * nunchuk)
+{
+  memset(nunchuk, 0, sizeof(struct wiimote_nunchuk));
+
+  nunchuk->x = 128;
+  nunchuk->y = 128;
+  nunchuk->accel_x = 512;
+  nunchuk->accel_y = 512;
+  nunchuk->accel_z = 760;
+}
+
+void reset_input_classic(struct wiimote_classic * classic)
+{
+  memset(classic, 0, sizeof(struct wiimote_classic));
+
+  classic->ls_x = 32;
+  classic->ls_y = 32;
+  classic->rs_x = 15;
+  classic->rs_y = 15;
+}
+
+void reset_input_motionplus(struct wiimote_motionplus * motionplus)
+{
+  memset(motionplus, 0, sizeof(struct wiimote_motionplus));
+
+  motionplus->yaw_down = 0x1F7F;
+  motionplus->roll_left = 0x1F7F;
+  motionplus->pitch_left = 0x1F7F;
+  motionplus->yaw_slow = 1;
+  motionplus->roll_slow = 1;
+  motionplus->pitch_slow = 1;
+}
 
 void init_extension(struct wiimote_state * state)
 {
@@ -737,29 +780,17 @@ void init_extension(struct wiimote_state * state)
     state->sys.register_a6[0xfd] = 0x20;
     state->sys.register_a6[0xfe] = 0x00;
     state->sys.register_a6[0xff] = 0x05;
-    
-  
-    state->sys.register_a4[0xf0] = 0x55;
-    state->sys.register_a4[0xf1] = 0xff;
-    state->sys.register_a4[0xf2] = 0xff;
-    state->sys.register_a4[0xf3] = 0xff;
-    state->sys.register_a4[0xf4] = 0xff;
-    state->sys.register_a4[0xf5] = 0xff;
-    state->sys.register_a4[0xf6] = 0xff;
-    state->sys.register_a4[0xf7] = 0x02;
-    state->sys.register_a4[0xf8] = 0xff;
-    state->sys.register_a4[0xf9] = 0xff;
-    state->sys.register_a4[0xfa] = 0x01;
-    state->sys.register_a4[0xfb] = 0x00;
-    state->sys.register_a4[0xfc] = 0xa6;
-    state->sys.register_a4[0xfd] = 0x20;
-    state->sys.register_a4[0xfe] = 0x00;
-    state->sys.register_a4[0xff] = 0x05;
-    
+
     if (state->sys.connected_extension_type == NoExtension)
     {
       return;
     }
+
+    memset(&state->sys.register_a4[0xf0], 0x0, 0x10);
+
+    state->sys.register_a4[0xf0] = 0x55;
+    state->sys.register_a4[0xfc] = 0xa4;
+    state->sys.register_a4[0xfd] = 0x20;
 
     switch (state->sys.connected_extension_type)
     {
@@ -767,6 +798,8 @@ void init_extension(struct wiimote_state * state)
       case Nunchuk:
         state->sys.register_a4[0xfe] = 0x00;
         state->sys.register_a4[0xff] = 0x00;
+        memcpy(&state->sys.register_a4[0x20], nunchuk_calibration, 0x10);
+        memcpy(&state->sys.register_a4[0x30], nunchuk_calibration, 0x10);
         break;
       case Classic:
         state->sys.register_a4[0xfe] = 0x01;
@@ -787,7 +820,6 @@ void init_extension(struct wiimote_state * state)
 
 void wiimote_destroy(struct wiimote_state *state)
 {
-  //free the queue
   while (state->sys.queue != NULL)
   {
     struct queued_report * rpt = state->sys.queue;
@@ -801,39 +833,14 @@ void wiimote_init(struct wiimote_state *state)
   memset(state, 0, sizeof(struct wiimote_state));
 
   //flat
-  state->usr.accel_x = 0x80 << 2;
-  state->usr.accel_y = 0x80 << 2;
-  state->usr.accel_z = 0x97 << 2;
+  state->usr.accel_x = 0x82 << 2;
+  state->usr.accel_y = 0x82 << 2;
+  state->usr.accel_z = 0x9f << 2;
 
-    /*
-    //mario kart tilted
-    state->usr.accel_x = 0x78 << 2;
-  state->usr.accel_y = 0x80 << 2;
-  state->usr.accel_z = 0x80 << 2;
-    */
-
-  ir_object_clear(state, 0);
-  ir_object_clear(state, 1);
-  ir_object_clear(state, 2);
-  ir_object_clear(state, 3);
-
-  state->usr.nunchuk.x = 128;
-  state->usr.nunchuk.y = 128;
-  state->usr.nunchuk.accel_x = 512;
-  state->usr.nunchuk.accel_y = 512;
-  state->usr.nunchuk.accel_z = 760;
-
-  state->usr.classic.ls_x = 32;
-  state->usr.classic.ls_y = 32;
-  state->usr.classic.rs_x = 15;
-  state->usr.classic.rs_y = 15;
-
-  state->usr.motionplus.yaw_down = 0x1F7F;
-  state->usr.motionplus.roll_left = 0x1F7F;
-  state->usr.motionplus.pitch_left = 0x1F7F;
-  state->usr.motionplus.yaw_slow = 1;
-  state->usr.motionplus.roll_slow = 1;
-  state->usr.motionplus.pitch_slow = 1;
+  reset_input_ir(state->usr.ir_object);
+  reset_input_nunchuk(&state->usr.nunchuk);
+  reset_input_classic(&state->usr.classic);
+  reset_input_motionplus(&state->usr.motionplus);
 
   state->usr.connected_extension_type = NoExtension;
 

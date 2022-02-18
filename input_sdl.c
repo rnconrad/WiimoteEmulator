@@ -50,6 +50,8 @@ bool togglekey0 = 0;
 bool togglekey9 = 0;
 bool shift;
 
+static const float mouse_sensitivity = 1.0;
+
 static bool input_sdl_poll_event(struct input_event *out_event)
 {
   SDL_Event event;
@@ -60,6 +62,45 @@ static bool input_sdl_poll_event(struct input_event *out_event)
 
   switch (event.type)
   {
+  case SDL_MOUSEMOTION:
+    out_event->type = INPUT_EVENT_TYPE_ANALOG_MOTION;
+    out_event->analog_motion_event.motion = INPUT_ANALOG_MOTION_POINTER;
+    out_event->analog_motion_event.delta_x = (float)event.motion.xrel / 1024.0 * mouse_sensitivity;
+    out_event->analog_motion_event.delta_y = -(float)event.motion.yrel / 768.0 * mouse_sensitivity;
+    out_event->analog_motion_event.delta_z = 0;
+    return true;
+  case SDL_MOUSEBUTTONUP:
+  case SDL_MOUSEBUTTONDOWN:
+    switch (event.button.button)
+    {
+      case SDL_BUTTON_LEFT:
+        out_event->type = INPUT_EVENT_TYPE_BUTTON;
+        out_event->button_event.pressed = (event.button.state == SDL_PRESSED);
+
+        if (arrow_function == 2)
+        {
+          out_event->button_event.button = INPUT_BUTTON_CLASSIC_A;
+        }
+        else
+        {
+          out_event->button_event.button = INPUT_BUTTON_WIIMOTE_A;
+        }
+        return true;
+      case SDL_BUTTON_RIGHT:
+        out_event->type = INPUT_EVENT_TYPE_BUTTON;
+        out_event->button_event.pressed = (event.button.state == SDL_PRESSED);
+
+        if (arrow_function == 2)
+        {
+          out_event->button_event.button = INPUT_BUTTON_CLASSIC_B;
+        }
+        else
+        {
+          out_event->button_event.button = INPUT_BUTTON_WIIMOTE_B;
+        }
+        return true;
+    }
+    return false;
   case SDL_KEYDOWN:
   case SDL_KEYUP:
     out_event->type = INPUT_EVENT_TYPE_BUTTON;

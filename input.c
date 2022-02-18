@@ -2,18 +2,24 @@
 
 #include "SDL/SDL.h"
 #include <math.h>
+#include "motion.h"
 
 int ir_up, ir_down, ir_left, ir_right,
     steer_left, steer_right,
     nunchuk_up, nunchuk_down, nunchuk_left, nunchuk_right,
     classic_left_stick_up, classic_left_stick_down, classic_left_stick_left, classic_left_stick_right,
-    motionplus_up, motionplus_down, motionplus_left, motionplus_right, motionplus_slow; 
-double steer_angle = (PI / 2);
+    motionplus_up, motionplus_down, motionplus_left, motionplus_right, motionplus_slow;
 extern int show_reports;
+
+static const double pointer_margin = 0.5;
+float pointer_x = 0.5;
+float pointer_y = 0.5;
 
 int input_update(struct wiimote_state *state, struct input_source const * source)
 {
   struct input_event event;
+
+  float pointer_delta_x = 0, pointer_delta_y = 0;
 
   /* Loop through waiting messages and process them */
 
@@ -37,20 +43,20 @@ int input_update(struct wiimote_state *state, struct input_source const * source
       switch (event.hotplug_event.extension)
       {
       case Nunchuk:
+        reset_input_nunchuk(&state->usr.nunchuk);
+        reset_input_ir(state->usr.ir_object);
+        break;
       case Classic:
+        reset_input_classic(&state->usr.classic);
+        reset_input_ir(state->usr.ir_object);
+        break;
       case BalanceBoard:
-        ir_object_clear(state, 0);
-        ir_object_clear(state, 1);
-        ir_object_clear(state, 2);
-        ir_object_clear(state, 3);
+        reset_input_ir(state->usr.ir_object);
         break;
       case NoExtension:
-        state->usr.ir_object[0].x = 400;
-        state->usr.ir_object[0].y = 400;
-        state->usr.ir_object[0].size = 8;
-        state->usr.ir_object[1].x = 600;
-        state->usr.ir_object[1].y = 400;
-        state->usr.ir_object[1].size = 8;
+        reset_input_ir(state->usr.ir_object);
+        pointer_x = 0.5;
+        pointer_y = 0.5;
         break;
       default:
         goto invalid;
@@ -157,6 +163,10 @@ int input_update(struct wiimote_state *state, struct input_source const * source
       bool moving = event.analog_motion_event.moving;
       switch (event.analog_motion_event.motion)
       {
+        case INPUT_ANALOG_MOTION_POINTER:
+          pointer_delta_x = event.analog_motion_event.delta_x;
+          pointer_delta_y = event.analog_motion_event.delta_y;
+          break;
         case INPUT_ANALOG_MOTION_IR_UP:
           ir_up = moving;
           break;
@@ -226,74 +236,10 @@ int input_update(struct wiimote_state *state, struct input_source const * source
     }
   }
 
-  if ((steer_left && steer_right) || (!steer_left && !steer_right))
-  {
-    steer_angle = (PI / 2);
-  }
-  else if (steer_left)
-  {
-    steer_angle = (6 * PI / 8);
-  }
-  else if (steer_right)
-  {
-    steer_angle = (2 * PI / 8);
-  }
+  pointer_x = fmax(-pointer_margin, fmin(1.0 + pointer_margin, pointer_x + pointer_delta_x));
+  pointer_y = fmax(-pointer_margin, fmin(1.0 + pointer_margin, pointer_y + pointer_delta_y));
 
-  /*
-
-       if (steer_left)
-       {
-       if (steer_angle < (7 * PI / 8))
-       steer_angle += 0.02;
-       state->usr.accel_y = -cos(steer_angle) * (0x19 << 2) + 0x200;
-       state->usr.accel_x = -sin(steer_angle) * (0x19 << 2) + 0x200;
-       }
-
-       if (steer_right)
-       {
-       if (steer_angle > (1 * PI / 8))
-       steer_angle -= 0.02;
-       state->usr.accel_y = -cos(steer_angle) * (0x19 << 2) + 0x200;
-       state->usr.accel_x = -sin(steer_angle) * (0x19 << 2) + 0x200;
-       }
-
-*/
-
-  //state->usr.accel_y = -cos(steer_angle) * (0x19 << 2) + 0x200;
-  //state->usr.accel_x = -sin(steer_angle) * (0x19 << 2) + 0x200;
-
-  if (ir_down)
-  {
-    if (state->usr.ir_object[0].y < 764)
-    {
-      state->usr.ir_object[0].y += 4;
-      state->usr.ir_object[1].y += 4;
-    }
-  }
-  if (ir_up)
-  {
-    if (state->usr.ir_object[0].x > 3)
-    {
-      state->usr.ir_object[0].y -= 4;
-      state->usr.ir_object[1].y -= 4;
-    }
-  }
-  if (ir_left)
-  {
-    if (state->usr.ir_object[0].x < 1020)
-    {
-      state->usr.ir_object[0].x += 4;
-      state->usr.ir_object[1].x += 4;
-    }
-  }
-  if (ir_right)
-  {
-    if (state->usr.ir_object[0].x > 3)
-    {
-      state->usr.ir_object[0].x -= 4;
-      state->usr.ir_object[1].x -= 4;
-    }
-  }
+  set_motion_state(state, pointer_x, pointer_y);
 
   state->usr.nunchuk.x = 128 + nunchuk_right * 100 - nunchuk_left * 100;
   state->usr.nunchuk.y = 128 + nunchuk_up * 100 - nunchuk_down * 100;
