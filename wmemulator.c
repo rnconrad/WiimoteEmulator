@@ -59,6 +59,12 @@ int create_socket()
     return -1;
   }
 
+  if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &opt, sizeof(opt)) < 0)
+  {
+    close(fd);
+    return -1;
+  }
+
   if (setsockopt(fd, SOL_L2CAP, L2CAP_LM, &opt, sizeof(opt)) < 0)
   {
     close(fd);
@@ -319,30 +325,32 @@ int main(int argc, char *argv[])
   {
     memset(&pfd, 0, sizeof(pfd));
 
-    // Listen for data on either fd
-    //setting this to zero is not required for every call...
-    //... also POLLERR has no effect in the events field
     pfd[0].fd = sock_sdp_fd;
-    pfd[0].events = POLLIN;
     pfd[1].fd = sock_ctrl_fd;
-    pfd[1].events = POLLIN;
     pfd[2].fd = sock_int_fd;
-    pfd[2].events = POLLIN;
 
     pfd[3].fd = sdp_fd;
-    pfd[3].events = POLLIN | POLLOUT;
-    pfd[4].fd = ctrl_fd;
-    pfd[4].events = POLLIN;
-    pfd[5].fd = int_fd;
-    pfd[5].events = POLLIN;
 
-    // Check data PSM for output if it's time to send a report
-    if (is_connected && send_report_now)
+    pfd[4].fd = ctrl_fd;
+    pfd[5].fd = int_fd;
+
+    if (!is_connected)
     {
+      pfd[0].events = POLLIN;
+      pfd[1].events = POLLIN;
+      pfd[2].events = POLLIN;
+
+      pfd[3].events = POLLIN | POLLOUT;
+    }
+    else
+    {
+      pfd[4].events = POLLIN;
+      pfd[5].events = POLLIN;
+
       pfd[5].events |= POLLOUT;
     }
 
-    if (poll(pfd, 6, 0) < 0)
+    if (poll(pfd, 6, 20) < 0)
     {
       printf("poll error\n");
       break;
@@ -424,11 +432,15 @@ int main(int argc, char *argv[])
     input_result = input_update(&state, &input_source);
     if (input_result)
     {
-       running = 0;
-       if (input_result == -2)
-       {
-         power_off_host(&host_bdaddr);
-       }
+      running = 0;
+      if (input_result == -2)
+      {
+        power_off_host(&host_bdaddr);
+      }
+      else
+      {
+        graceful_disconnect(&host_bdaddr);
+      }
     }
 
     if (is_connected && send_report_now)
@@ -446,14 +458,12 @@ int main(int argc, char *argv[])
       }
       else
       {
-        if (++failure > 3)
+        if (++failure > 5)
         {
           printf("connection timed out, attemping to reconnect...\n");
           disconnect();
           is_connected = 0;
         }
-
-        usleep(2*1000*1000);
       }
     }
 
@@ -469,8 +479,6 @@ int main(int argc, char *argv[])
         is_connected = 1;
       }
     }
-
-    usleep(20*1000);
   }
 
   printf("cleaning up...\n");

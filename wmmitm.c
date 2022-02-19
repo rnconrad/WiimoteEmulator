@@ -61,6 +61,12 @@ int create_socket()
     return -1;
   }
 
+  if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &opt, sizeof(opt)) < 0)
+  {
+    close(fd);
+    return -1;
+  }
+
   if (setsockopt(fd, SOL_L2CAP, L2CAP_LM, &opt, sizeof(opt)) < 0)
   {
     close(fd);
@@ -261,8 +267,10 @@ int main(int argc, char *argv[])
   unsigned char out_buf[256];
   ssize_t out_buf_len = 0;
 
-  int send_report_now = 1;
   int failure = 0;
+
+  int enable_report_printing = 0;
+  show_reports = 1;
 
   if (argc > 1)
   {
@@ -376,35 +384,44 @@ int main(int argc, char *argv[])
   {
     memset(&pfd, 0, sizeof(pfd));
 
-    // Listen for data on either fd
-    //setting this to zero is not required for every call...
-    //... also POLLERR has no effect in the events field
     pfd[0].fd = sock_sdp_fd;
-    pfd[0].events = POLLIN;
     pfd[1].fd = sock_ctrl_fd;
-    pfd[1].events = POLLIN;
     pfd[2].fd = sock_int_fd;
-    pfd[2].events = POLLIN;
 
     pfd[3].fd = sdp_fd;
-    pfd[3].events = POLLIN | POLLOUT;
+
     pfd[4].fd = ctrl_fd;
-    pfd[4].events = POLLIN;
     pfd[5].fd = int_fd;
-    pfd[5].events = POLLIN;
 
     pfd[6].fd = wm_ctrl_fd;
-    pfd[6].events = POLLIN;
     pfd[7].fd = wm_int_fd;
-    pfd[7].events = POLLIN | POLLOUT;
 
-    // Check data PSM for output if it's time to send a report
-    if (is_connected && send_report_now)
+    if (!is_connected)
     {
-      pfd[5].events |= POLLOUT;
+      pfd[0].events = POLLIN;
+      pfd[1].events = POLLIN;
+      pfd[2].events = POLLIN;
+
+      pfd[3].events = POLLIN | POLLOUT;
+    }
+    else
+    {
+      pfd[4].events = POLLIN;
+      pfd[5].events = POLLIN;
+      pfd[6].events = POLLIN;
+      pfd[7].events = POLLIN;
+
+      if (in_buf_len > 0)
+      {
+        pfd[5].events |= POLLOUT;
+      }
+      if (out_buf_len > 0)
+      {
+        pfd[7].events |= POLLOUT;
+      }
     }
 
-    if (poll(pfd, 8, 0) < 0)
+    if (poll(pfd, 8, 10) < 0)
     {
       printf("poll error\n");
       break;
@@ -488,7 +505,10 @@ int main(int argc, char *argv[])
       if (out_buf_len == 0 && (pfd[5].revents & POLLIN))
       {
         out_buf_len = recv(int_fd, out_buf, 32, MSG_DONTWAIT);
-        print_report(out_buf, out_buf_len);
+        if (enable_report_printing)
+        {
+          print_report(out_buf, out_buf_len);
+        }
       }
       if (pfd[5].revents & POLLOUT)
       {
@@ -500,23 +520,26 @@ int main(int argc, char *argv[])
 
         failure = 0;
       }
-      else
-      {
-        if (++failure > 3)
-        {
-          printf("connection timed out, attemping to reconnect...\n");
-          disconnect_from_host();
-          is_connected = 0;
-        }
+      // else
+      // {
+      //   if (++failure > 3)
+      //   {
+      //     printf("connection timed out, attemping to reconnect...\n");
+      //     disconnect_from_host();
+      //     is_connected = 0;
+      //   }
 
-        usleep(20*1000*1000);
-      }
+      //   usleep(20*1000*1000);
+      // }
     }
 
     if (in_buf_len == 0 && (pfd[7].revents & POLLIN))
     {
       in_buf_len = recv(wm_int_fd, in_buf, 32, MSG_DONTWAIT);
-      print_report(in_buf, in_buf_len);
+      if (enable_report_printing)
+      {
+        print_report(in_buf, in_buf_len);
+      }
     }
     if (out_buf_len > 0 && (pfd[7].revents & POLLOUT))
     {
