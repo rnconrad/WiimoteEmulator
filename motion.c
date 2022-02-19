@@ -1,10 +1,9 @@
 #include "motion.h"
 
-#include <sys/time.h>
 #include "vector_math.h"
 
 //units in meters
-static const double screen_distance = 2.0;
+static const double screen_distance = 2;
 static const double screen_width = 1.0;
 static const double screen_aspect = 4.0 / 3.0;
 
@@ -12,12 +11,12 @@ static const double sensor_bar_y = screen_width / screen_aspect * 0.5;
 static const double sensor_bar_width = 0.20;
 
 static const double cam_aspect = 1024.0 / 768.0;
-static const double cam_fov = 33.0;
+static const double cam_fov = 42.0;
 static const double cam_far = 4.0;
 static const double cam_near = 0.5;
 
 static const uint16_t accelerometer_zero = 0x85 << 2;
-static const uint16_t accelerometer_unit = 0x74;
+static const uint16_t accelerometer_unit = 0x6C;
 
 void look_at_pointer(mat4 * wiimote_mat, float pointer_x, float pointer_y)
 {
