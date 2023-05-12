@@ -258,7 +258,7 @@ int main(int argc, char *argv[])
     input_socket_init_unix_at_path(argv[3]);
     input_source = input_source_socket;
   }
-  else if (argc > 3 && strcmp(argv[3], "ip") == 0)
+  else if (argc > 3 && strcmp(argv[2], "ip") == 0)
   {
     input_socket_init_ip_on_port(argv[3]);
     input_source = input_source_socket;
@@ -273,7 +273,7 @@ int main(int argc, char *argv[])
   signal(SIGINT, sig_handler);
   signal(SIGTERM, sig_handler);
   signal(SIGHUP, sig_handler);
-  
+
   if (set_up_device(NULL) < 0)
   {
     printf("failed to set up Bluetooth device\n");
@@ -439,7 +439,7 @@ int main(int argc, char *argv[])
       }
       else
       {
-        graceful_disconnect(&host_bdaddr);
+        disconnect(&host_bdaddr);
       }
     }
 
