@@ -1,0 +1,67 @@
+# Socket Actions
+
+This is the full list of socket actions that can be sent.
+
+## Type `button`
+
+- HOME
+- WIIMOTE_UP
+- WIIMOTE_DOWN
+- WIIMOTE_LEFT
+- WIIMOTE_RIGHT
+- WIIMOTE_A
+- WIIMOTE_B
+- WIIMOTE_1
+- WIIMOTE_2
+- WIIMOTE_PLUS
+- WIIMOTE_MINUS
+- NUNCHUK_C
+- NUNCHUK_Z
+- CLASSIC_UP
+- CLASSIC_DOWN
+- CLASSIC_LEFT
+- CLASSIC_RIGHT
+- CLASSIC_A
+- CLASSIC_B
+- CLASSIC_X
+- CLASSIC_Y
+- CLASSIC_L
+- CLASSIC_R
+- CLASSIC_ZL
+- CLASSIC_ZR
+- CLASSIC_PLUS
+- CLASSIC_MINUS
+
+## Type `analog_motion`
+
+- IR_UP
+- IR_DOWN
+- IR_LEFT
+- IR_RIGHT
+- STEER_LEFT
+- STEER_RIGHT
+- NUNCHUK_UP
+- NUNCHUK_DOWN
+- NUNCHUK_LEFT
+- NUNCHUK_RIGHT
+- CLASSIC_LEFT_STICK_UP
+- CLASSIC_LEFT_STICK_DOWN
+- CLASSIC_LEFT_STICK_LEFT
+- CLASSIC_LEFT_STICK_RIGHT
+- MOTIONPLUS_UP
+- MOTIONPLUS_DOWN
+- MOTIONPLUS_LEFT
+- MOTIONPLUS_RIGHT
+- MOTIONPLUS_SLOW
+
+## Type `emulator_control`
+
+- quit
+- power_off
+
+## Type `hotplug`
+
+- nunchuk
+- classic
+- balance_board
+- none

@@ -48,6 +48,7 @@ void input_socket_init_ip_on_port(char const *port)
     if (input_socket_init_from_addrinfo(info))
     {
       freeaddrinfo(result_info);
+      printf(PROGRAM_NAME ": successfully bound to port %s\n", port);
       return;
     }
   }

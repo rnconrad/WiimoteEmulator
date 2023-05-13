@@ -1,5 +1,6 @@
 bluez-4.101
 wmemulator
+wmmitm
 packedtest
 *.o
 *.so
